@@ -1,4 +1,5 @@
-import { init as viewInit, stickAngle, clear } from "./pgl/view";
+import { init as pglInit, stickAngle } from "./pgl/main";
+import { clear } from "./pgl/view";
 import { print, defineSymbols } from "./pgl/text";
 import { Vector } from "./pgl/vector";
 import { Actor, update as sgaUpdate, spawn } from "./pgl/simpleGameActor";
@@ -62,4 +63,4 @@ function update() {
   sgaUpdate();
 }
 
-viewInit(init, update);
+pglInit(init, update);
