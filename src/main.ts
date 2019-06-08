@@ -4,6 +4,7 @@ import * as text from "./pgl/text";
 import * as terminal from "./pgl/terminal";
 import { Actor, update as sgaUpdate, spawn } from "./pgl/simpleGameActor";
 import { Vector } from "./pgl/vector";
+import { playScale } from "./pgl/sound";
 
 function init() {
   text.defineSymbols(charPatterns, "A");
@@ -32,6 +33,7 @@ function player(a: Actor) {
     if (walkTicks < 0) {
       walkTicks += 30;
       walkPattern = (walkPattern + 1) % 2;
+      playScale(2, ".))).>(.(((.", 3.8);
     }
     text.print(walkPattern === 0 ? "A" : "B", pos.x, pos.y, {
       rotationPattern,

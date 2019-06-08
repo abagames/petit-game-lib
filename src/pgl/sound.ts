@@ -32,6 +32,41 @@ export function play(synthNumber: number, mml: string) {
   mmls[synthNumber] = mml;
 }
 
+export function playScale(
+  synthNumber: number,
+  mml: string,
+  baseOctave = defaultOctave,
+  scale = ["c", "d", "e", "g", "a"]
+) {
+  const sl = scale.length;
+  let sn = Math.floor(baseOctave * sl);
+  let o: number;
+  let po = -1;
+  let convertedMml = "";
+  for (let i = 0; i < mml.length; i++) {
+    o = Math.floor(sn / sl);
+    if (po !== o) {
+      convertedMml += `o${o}`;
+      po = o;
+    }
+    const c = mml.charAt(i);
+    if (c === ".") {
+      convertedMml += scale[Math.floor(sn % sl)];
+    } else if (c === ")") {
+      sn++;
+    } else if (c === "(") {
+      sn--;
+    } else if (c === ">") {
+      sn += sl;
+    } else if (c === "<") {
+      sn -= sl;
+    } else {
+      convertedMml += c;
+    }
+  }
+  play(synthNumber, convertedMml);
+}
+
 export function update() {
   mmls.forEach((mml, i) => {
     if (mml == null) {

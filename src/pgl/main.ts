@@ -59,6 +59,7 @@ function update() {
     return;
   }
   lastFrameTime = now;
+  sound.update();
   stickAngle = -1;
   keyboard.update();
   if (keyboard.stickAngle >= 0) {
