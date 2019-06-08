@@ -1,12 +1,14 @@
 import { init as pglInit, stickAngle } from "./pgl/main";
-import { clear } from "./pgl/view";
-import { print, defineSymbols } from "./pgl/text";
-import { Vector } from "./pgl/vector";
+import * as view from "./pgl/view";
+import * as text from "./pgl/text";
+import * as terminal from "./pgl/terminal";
 import { Actor, update as sgaUpdate, spawn } from "./pgl/simpleGameActor";
+import { Vector } from "./pgl/vector";
 
 function init() {
-  defineSymbols(charPatterns, "A");
+  text.defineSymbols(charPatterns, "A");
   spawn(player);
+  terminal.print("I-----I", 1, 1, { colorPattern: "pcccccp" });
 }
 
 function player(a: Actor) {
@@ -31,9 +33,7 @@ function player(a: Actor) {
       walkTicks += 30;
       walkPattern = (walkPattern + 1) % 2;
     }
-    print(walkPattern === 0 ? "A" : "B", pos.x, pos.y, {
-      colorPattern: "w",
-      backgroundColorPattern: "t",
+    text.print(walkPattern === 0 ? "A" : "B", pos.x, pos.y, {
       rotationPattern,
       symbolPattern: "s"
     });
@@ -59,8 +59,9 @@ ww w w
 ];
 
 function update() {
-  clear();
+  view.clear();
   sgaUpdate();
+  terminal.draw();
 }
 
 pglInit(init, update);

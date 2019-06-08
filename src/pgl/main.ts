@@ -1,10 +1,11 @@
 import * as view from "./view";
-import { Vector, VectorLike } from "./vector";
 import * as keyboard from "./keyboard";
 import * as pointer from "./pointer";
 import * as text from "./text";
 import * as sound from "./sound";
+import * as terminal from "./terminal";
 import { wrap } from "./math";
+import { Vector, VectorLike } from "./vector";
 
 export type Options = {
   viewSize: VectorLike;
@@ -17,7 +18,7 @@ let lastFrameTime = 0;
 let _init: () => void;
 let _update: () => void;
 const defaultOptions: Options = {
-  viewSize: new Vector(126)
+  viewSize: { x: 126, y: 126 }
 };
 let options: Options;
 
@@ -31,6 +32,11 @@ export function init(
   options = { ...defaultOptions, ..._options };
   view.setSize(options.viewSize);
   centerPos.set(view.size.x / 2, view.size.y / 2);
+  const terminalSize = {
+    x: Math.ceil(view.size.x / text.letterSize),
+    y: Math.ceil(view.size.y / text.letterSize)
+  };
+  terminal.init(terminalSize);
   window.addEventListener("load", onLoad);
 }
 

@@ -9,7 +9,7 @@ let letterCanvas: HTMLCanvasElement;
 let letterContext: CanvasRenderingContext2D;
 const dotCount = 6;
 const dotSize = 1;
-const letterSize = dotCount * dotSize;
+export const letterSize = dotCount * dotSize;
 const rgbNumbers = [
   undefined,
   0x000000,
@@ -22,7 +22,7 @@ const rgbNumbers = [
   0xeeeeee
 ];
 let rgbObjects: { r: number; g: number; b: number }[];
-const colorChars = "tlrgybpcwRGYBPCW";
+export const colorChars = "tlrgybpcwRGYBPCW";
 type ColorChar =
   | "t"
   | "l"
@@ -40,7 +40,7 @@ type ColorChar =
   | "P"
   | "C"
   | "W";
-const rotationChars = "kljhnmbvopiu9087";
+export const rotationChars = "kljhnmbvopiu9087";
 
 export type Options = {
   colorPattern?: string;
@@ -158,7 +158,7 @@ export function setColor(fill: string) {
   context.fillStyle = `rgb(${f.r},${f.g},${f.b})`;
 }
 
-function getColorLines(str: string) {
+export function getColorLines(str: string) {
   const _cc = str.split("\n");
   const cc = _cc.slice(1, _cc.length - 1);
   const lines = [];
@@ -181,14 +181,14 @@ function getColorLines(str: string) {
   return [lines, colorLines];
 }
 
-function isColorLine(line: string) {
+export function isColorLine(line: string) {
   return (
     line.trim().length > 0 &&
     line.replace(new RegExp(`[\\s${colorChars}]`, "g"), "").length === 0
   );
 }
 
-function getCharFromLines(lines: string[], x: number, y: number) {
+export function getCharFromLines(lines: string[], x: number, y: number) {
   if (lines == null) {
     return undefined;
   }
@@ -199,10 +199,15 @@ function getCharFromLines(lines: string[], x: number, y: number) {
   return c === "" || c === " " ? undefined : c;
 }
 
-function getCharOption(cg?: string, bg?: string, rg?: string, sg?: string) {
+export function getCharOption(
+  cg?: string,
+  bg?: string,
+  rg?: string,
+  sg?: string
+) {
   let options: CharOptions = {
     color: "w",
-    backgroundColor: "l",
+    backgroundColor: "t",
     angleIndex: 0,
     isMirrorX: false,
     isMirrorY: false,
@@ -228,7 +233,12 @@ function getCharOption(cg?: string, bg?: string, rg?: string, sg?: string) {
   return options;
 }
 
-function printChar(c: string, x: number, y: number, options: CharOptions) {
+export function printChar(
+  c: string,
+  x: number,
+  y: number,
+  options: CharOptions
+) {
   const cca = c.charCodeAt(0);
   if (cca < 0x20 || cca > 0x7e) {
     return;
