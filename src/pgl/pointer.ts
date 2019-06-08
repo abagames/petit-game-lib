@@ -104,9 +104,6 @@ export function update() {
   } else {
     targetPos.add(move);
   }
-}
-
-export function resetIsClicked() {
   isClicked = false;
 }
 

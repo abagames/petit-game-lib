@@ -22,10 +22,12 @@ export function init(_size: VectorLike) {
 
 export function print(
   _str: string,
-  x: number,
-  y: number,
+  _x: number,
+  _y: number,
   options: text.Options = {}
 ) {
+  let x = Math.floor(_x);
+  let y = Math.floor(_y);
   const bx = x;
   let colorLines =
     options.colorPattern != null ? options.colorPattern.split("\n") : undefined;
@@ -80,8 +82,11 @@ export function print(
 }
 
 export function getCharAt(_x: number, _y: number) {
-  const x = wrap(_x, 0, size.x);
-  const y = wrap(_y, 0, size.y);
+  if (_x < 0 || _x >= size.x || _y < 0 || _y >= size.y) {
+    return undefined;
+  }
+  const x = Math.floor(_x);
+  const y = Math.floor(_y);
   const char = charGrid[x][y];
   const cg = colorGrid[x][y];
   const bg = backgroundColorGrid[x][y];
@@ -96,8 +101,11 @@ export function setCharAt(
   char: string,
   options?: text.CharOptions
 ) {
-  const x = wrap(_x, 0, size.x);
-  const y = wrap(_y, 0, size.y);
+  if (_x < 0 || _x >= size.x || _y < 0 || _y >= size.y) {
+    return;
+  }
+  const x = Math.floor(_x);
+  const y = Math.floor(_y);
   charGrid[x][y] = char;
   if (options == null) {
     colorGrid[x][y] = backgroundColorGrid[x][y] = rotationGrid[x][

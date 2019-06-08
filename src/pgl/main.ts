@@ -6,12 +6,16 @@ import * as sound from "./sound";
 import * as terminal from "./terminal";
 import { wrap } from "./math";
 import { Vector, VectorLike } from "./vector";
+import { Random } from "./random";
 
 export type Options = {
   viewSize: VectorLike;
 };
 
 export let stickAngle = 0;
+export let isPressed = false;
+export let isJustPressed = false;
+export const random = new Random();
 let centerPos = new Vector();
 let offsetFromCenter = new Vector();
 let lastFrameTime = 0;
@@ -40,9 +44,17 @@ export function init(
   window.addEventListener("load", onLoad);
 }
 
+export function clearJustPressed() {
+  keyboard.clearJustPressed();
+  pointer.clearJustPressed();
+}
+
 function onLoad() {
   view.init();
-  keyboard.init({ onKeyDown: sound.resumeAudioContext });
+  keyboard.init({
+    onKeyDown: sound.resumeAudioContext,
+    isUsingStickKeysAsButton: true
+  });
   pointer.init(view.canvas, view.size, {
     onPointerDownOrUp: sound.resumeAudioContext
   });
@@ -76,6 +88,8 @@ function update() {
       stickAngle = wrap(Math.round(oa), 0, 8);
     }
   }
+  isPressed = keyboard.isPressed || pointer.isPressed;
+  isJustPressed = keyboard.isJustPressed || pointer.isJustPressed;
   _update();
   if (pointer.isPressed) {
     text.print("c", view.size.x / 2 - 2, view.size.y / 2 - 2, {

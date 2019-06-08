@@ -22,6 +22,7 @@ const parts: Tone.Part[] = range(4).map(() => undefined);
 const tempo = 200;
 const defaultOctave = 4;
 const defaultLength = 32;
+const isSimultaneousSoundEnabled = true;
 
 Tone.Transport.start();
 
@@ -72,7 +73,7 @@ export function update() {
     if (mml == null) {
       return;
     }
-    if (parts[i] != null) {
+    if (!isSimultaneousSoundEnabled && parts[i] != null) {
       parts[i].stop();
     }
     parts[i] = getPart(
