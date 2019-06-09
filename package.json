@@ -2,9 +2,12 @@
   "name": "petit-game-lib",
   "version": "1.0.0",
   "description": "Game development library for petit games",
+  "config": {
+    "game": "skizone"
+  },
   "scripts": {
-    "watch": "parcel src/index.html -d tmp",
-    "build": "parcel build src/index.html -d docs --no-source-maps --public-url ./"
+    "watch": "cross-conf-env parcel src/%npm_package_config_game%/index.html -d tmp",
+    "build": "cross-conf-env parcel build src/%npm_package_config_game%/index.html -d docs/%npm_package_config_game% --no-source-maps --public-url ./"
   },
   "author": "abagames",
   "license": "MIT",
@@ -12,6 +15,7 @@
     "last 1 Chrome version"
   ],
   "devDependencies": {
+    "cross-conf-env": "^1.1.2",
     "parcel-bundler": "^1.12.3",
     "parcel-plugin-clean-dist": "0.0.6",
     "typescript": "^3.5.1"

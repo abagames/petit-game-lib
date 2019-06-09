@@ -4,19 +4,19 @@ import {
   random,
   clearJustPressed,
   isJustPressed
-} from "./pgl/main";
-import * as view from "./pgl/view";
-import * as text from "./pgl/text";
-import * as terminal from "./pgl/terminal";
+} from "../pgl/main";
+import * as view from "../pgl/view";
+import * as text from "../pgl/text";
+import * as terminal from "../pgl/terminal";
 import {
   Actor,
   update as sgaUpdate,
   spawn,
   reset as sgaReset
-} from "./pgl/simpleGameActor";
-import { Vector } from "./pgl/vector";
-import { playScale, play } from "./pgl/sound";
-import { clamp } from "./pgl/math";
+} from "../pgl/simpleGameActor";
+import { Vector } from "../pgl/vector";
+import { playScale, play } from "../pgl/sound";
+import { clamp } from "../pgl/math";
 
 let score = -1;
 let addScore: number;
