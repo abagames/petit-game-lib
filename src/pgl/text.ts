@@ -5,6 +5,7 @@ import { symbolPatterns } from "./symbolPattern";
 
 let letterImages: HTMLImageElement[];
 let symbolImages: HTMLImageElement[];
+let cachedImages: { [key: string]: HTMLImageElement };
 let letterCanvas: HTMLCanvasElement;
 let letterContext: CanvasRenderingContext2D;
 const dotCount = 6;
@@ -88,6 +89,7 @@ export function init() {
   letterImages = letterPatterns.map(lp => createLetterImages(lp));
   symbolImages = range(64).map(() => undefined);
   defineSymbols(symbolPatterns, "a");
+  cachedImages = {};
 }
 
 export function defineSymbols(pattern: string[], startChar: string) {
@@ -263,7 +265,17 @@ export function printChar(
     !options.isMirrorY &&
     options.alpha === 1
   ) {
-    context.drawImage(img, x, y, scaledSize, scaledSize);
+    if (options.scale === 1) {
+      context.drawImage(img, x, y);
+    } else {
+      context.drawImage(img, x, y, scaledSize, scaledSize);
+    }
+    return;
+  }
+  const cacheIndex = JSON.stringify({ c, options });
+  const ci = cachedImages[cacheIndex];
+  if (ci != null) {
+    context.drawImage(ci, x, y);
     return;
   }
   letterContext.clearRect(0, 0, letterSize, letterSize);
@@ -295,6 +307,9 @@ export function printChar(
     letterContext.globalCompositeOperation = "source-over";
   }
   context.drawImage(letterCanvas, x, y, scaledSize, scaledSize);
+  const cachedImage = document.createElement("img");
+  cachedImage.src = letterCanvas.toDataURL();
+  cachedImages[cacheIndex] = cachedImage;
 }
 
 function isColorChars(c: string): c is ColorChar {

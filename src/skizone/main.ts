@@ -43,12 +43,6 @@ function initTitle() {
   if (score >= 0) {
     printScore();
   }
-  terminal.print("", 6, 4, {
-    charAndColorPattern: `
-SKI ZONE
-rrr rrrr
-`
-  });
   ticks = 0;
 }
 
@@ -75,6 +69,14 @@ function update() {
 }
 
 function updateTitle() {
+  if (ticks === 5) {
+    terminal.print("", 6, 4, {
+      charAndColorPattern: `
+SKI ZONE
+rrr rrrr
+`
+    });
+  }
   if (ticks === 30) {
     terminal.print("", 3, 7, {
       charAndColorPattern: `
