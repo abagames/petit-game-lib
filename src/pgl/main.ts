@@ -91,6 +91,7 @@ function update() {
   isPressed = keyboard.isPressed || pointer.isPressed;
   isJustPressed = keyboard.isJustPressed || pointer.isJustPressed;
   _update();
+  view.update();
   if (pointer.isPressed) {
     text.print("c", view.size.x / 2 - 2, view.size.y / 2 - 2, {
       colorPattern: "b",
