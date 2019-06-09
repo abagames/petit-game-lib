@@ -30,6 +30,8 @@ let updateFunc = {
   gameOver: updateGameOver
 };
 
+pglInit(init, update);
+
 function init() {
   text.defineSymbols(charPatterns, "A");
   initTitle();
@@ -196,5 +198,3 @@ ww w w
  w  w
 `
 ];
-
-pglInit(init, update);
