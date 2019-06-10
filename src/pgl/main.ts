@@ -25,6 +25,7 @@ const defaultOptions: Options = {
   viewSize: { x: 126, y: 126 }
 };
 let options: Options;
+let ticks = 0;
 
 export function init(
   __init: () => void,
@@ -112,5 +113,9 @@ function update() {
       rotationPattern: rc,
       alpha: 0.5
     });
+  }
+  ticks++;
+  if (ticks === 10) {
+    text.enableCache();
   }
 }

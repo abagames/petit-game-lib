@@ -6,6 +6,7 @@ import { symbolPatterns } from "./symbolPattern";
 let letterImages: HTMLImageElement[];
 let symbolImages: HTMLImageElement[];
 let cachedImages: { [key: string]: HTMLImageElement };
+let isCacheEnabled = false;
 let letterCanvas: HTMLCanvasElement;
 let letterContext: CanvasRenderingContext2D;
 const dotCount = 6;
@@ -97,6 +98,10 @@ export function defineSymbols(pattern: string[], startChar: string) {
   pattern.forEach((p, i) => {
     symbolImages[index + i] = createLetterImages(p);
   });
+}
+
+export function enableCache() {
+  isCacheEnabled = true;
 }
 
 export function print(
@@ -307,9 +312,11 @@ export function printChar(
     letterContext.globalCompositeOperation = "source-over";
   }
   context.drawImage(letterCanvas, x, y, scaledSize, scaledSize);
-  const cachedImage = document.createElement("img");
-  cachedImage.src = letterCanvas.toDataURL();
-  cachedImages[cacheIndex] = cachedImage;
+  if (isCacheEnabled) {
+    const cachedImage = document.createElement("img");
+    cachedImage.src = letterCanvas.toDataURL();
+    cachedImages[cacheIndex] = cachedImage;
+  }
 }
 
 function isColorChars(c: string): c is ColorChar {
