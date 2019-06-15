@@ -56,17 +56,13 @@ export function init() {
     captureCanvas.height = size.y;
     captureContext = captureCanvas.getContext("2d");
     captureContext.fillStyle = "black";
-    gcc.setOptions({ scale: 2, capturingFps: 30 });
+    gcc.setOptions({ scale: 2, capturingFps: 60 });
   }
 }
 
 export function clear() {
   context.fillStyle = "black";
   context.fillRect(0, 0, size.x, size.y);
-}
-
-export function rect(x: number, y: number, width: number, height: number) {
-  context.fillRect(x, y, width, height);
 }
 
 export function saveAsBackground() {

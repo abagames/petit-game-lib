@@ -17,6 +17,10 @@ export const synths = [
   ),
   new Tone.NoiseSynth().chain(new Tone.Volume(-16), Tone.Master)
 ];
+export const scales = {
+  majorPentatonic: ["c", "d", "e", "g", "a"],
+  minorPentatonic: ["c", "e-", "f", "g", "b-"]
+};
 const mmls: string[] = range(4).map(() => undefined);
 const parts: Tone.Part[] = range(4).map(() => undefined);
 const tempo = 200;
@@ -37,7 +41,7 @@ export function playScale(
   synthNumber: number,
   mml: string,
   baseOctave = defaultOctave,
-  scale = ["c", "d", "e", "g", "a"]
+  scale = scales.majorPentatonic
 ) {
   const sl = scale.length;
   let sn = Math.floor(baseOctave * sl);

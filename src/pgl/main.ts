@@ -9,7 +9,8 @@ import { Vector, VectorLike } from "./vector";
 import { Random } from "./random";
 
 export type Options = {
-  viewSize: VectorLike;
+  viewSize?: VectorLike;
+  isUsingVirtualPad?: boolean;
 };
 
 export let stickAngle = 0;
@@ -22,7 +23,8 @@ let lastFrameTime = 0;
 let _init: () => void;
 let _update: () => void;
 const defaultOptions: Options = {
-  viewSize: { x: 126, y: 126 }
+  viewSize: { x: 126, y: 126 },
+  isUsingVirtualPad: true
 };
 let options: Options;
 let ticks = 0;
@@ -93,7 +95,7 @@ function update() {
   isJustPressed = keyboard.isJustPressed || pointer.isJustPressed;
   _update();
   view.update();
-  if (pointer.isPressed) {
+  if (options.isUsingVirtualPad && pointer.isPressed) {
     text.print("c", view.size.x / 2 - 2, view.size.y / 2 - 2, {
       colorPattern: "b",
       backgroundColorPattern: "t",

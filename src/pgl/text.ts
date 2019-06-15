@@ -23,7 +23,7 @@ const rgbNumbers = [
   0x03a9f4,
   0xeeeeee
 ];
-let rgbObjects: { r: number; g: number; b: number }[];
+export let rgbObjects: { r: number; g: number; b: number }[];
 export const colorChars = "tlrgybpcwRGYBPCW";
 type ColorChar =
   | "t"
