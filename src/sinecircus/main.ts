@@ -226,7 +226,8 @@ function initBackground() {
   const context = view.context;
   context.fillStyle = `rgb(${green.r},${green.g},${green.b})`;
   context.fillRect(0, 6 * 3, 6 * 29, 6 * 12);
-  context.fillStyle = "black";
+  const blue = text.rgbObjects[12];
+  context.fillStyle = `rgb(${blue.r},${blue.g},${blue.b})`;
   context.fillRect(0, 0, 6 * 29, 6 * 3);
   let y = 6 * 3;
   let iy = 5;
