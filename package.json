@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Game development library for petit games",
   "config": {
-    "game": "sinecircus"
+    "game": "maztic"
   },
   "scripts": {
     "watch": "cross-conf-env parcel src/%npm_package_config_game%/index.html -d tmp",
