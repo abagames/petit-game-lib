@@ -56,22 +56,24 @@ function generateLevel() {
     .div(2)
     .floor();
   const level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
-  let points: { pos: Vector; angle: number }[] = [];
   const random = new Random();
-  points.push({
-    pos: new Vector(
-      random.getInt(4, levelSize.x - 3),
-      random.getInt(4, levelSize.y - 3)
-    ),
-    angle: random.getInt(4)
-  });
-  const pc = random.getInt(10, 15);
-  for (let i = 0; i < pc; i++) {
-    if (points.length === 0) {
+  let points: { pos: Vector; angle: number }[] = [];
+  let pathCount = (levelSize.x - 2) * (levelSize.y - 2) * random.get(0.3, 0.4);
+  for (let i = 0; i < 99; i++) {
+    if (pathCount <= 0) {
       break;
     }
+    if (points.length === 0) {
+      points.push({
+        pos: new Vector(
+          random.getInt(4, levelSize.x - 3),
+          random.getInt(4, levelSize.y - 3)
+        ),
+        angle: random.getInt(4)
+      });
+    }
     const p = points.pop();
-    generatePath(level, random, p.pos, p.angle, points);
+    pathCount -= generatePath(level, random, p.pos, p.angle, points);
   }
   points.map(p => {
     level[p.pos.y][p.pos.x] = " ";
@@ -89,6 +91,7 @@ function generatePath(
   const angle = wrap(_angle, 0, 4);
   const ao = angleOffsets[angle];
   let isBreaking = false;
+  let pathCount = 0;
   for (let i = 0; i < 99; i++) {
     pos.add({ x: ao[0], y: ao[1] });
     if (
@@ -99,33 +102,31 @@ function generatePath(
     ) {
       break;
     }
-    let c = " ";
-    switch (random.getInt(10)) {
-      case 0:
-        c = random.select(["/", "\\"]);
-        points.push({ pos: new Vector(pos), angle: angle - 1 });
-        points.push({ pos: new Vector(pos), angle: angle + 1 });
+    let c = random.select("/\\/\\-|sNZnzw                    ".split(""));
+    if (c === "/" || c === "\\") {
+      points.push({ pos: new Vector(pos), angle: angle - 1 });
+      points.push({ pos: new Vector(pos), angle: angle + 1 });
+    } else if (c === "N" || c === "Z" || c === "n" || c === "z") {
+      const b = { angle };
+      stageChar[c].onHit(b);
+      if (wrap(angle - b.angle, 0, 4) === 2) {
+        c = " ";
         break;
-      case 1:
-        c = random.select(["-", "|", "s"]);
-        break;
-      case 2:
-        c = random.select(["N", "Z", "n", "z"]);
-        const b = { angle };
-        stageChar[c].onHit(b);
-        if (wrap(angle - b.angle, 0, 4) === 2) {
-          c = " ";
-          break;
-        }
-        points.push({ pos: new Vector(pos), angle: b.angle });
-        isBreaking = true;
-        break;
+      }
+      points.push({ pos: new Vector(pos), angle: b.angle });
+      isBreaking = true;
+    } else if (c === "w") {
+      isBreaking = true;
+    }
+    if (level[pos.y][pos.x] === "w") {
+      pathCount++;
     }
     level[pos.y][pos.x] = c;
     if (isBreaking) {
       break;
     }
   }
+  return pathCount;
 }
 
 let changingCharPoss: Vector[];
