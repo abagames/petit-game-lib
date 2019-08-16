@@ -22,6 +22,8 @@ let updateFunc = {
   gameOver: updateGameOver
 };
 const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+const levelSize = new Vector();
+const levelOffset = new Vector();
 
 pglInit(init, update, {
   isUsingVirtualPad: false
@@ -47,15 +49,19 @@ function initInGame() {
 }
 
 function generateLevel() {
-  const level = range(terminal.size.y).map(() =>
-    range(terminal.size.x).map(() => "w")
-  );
+  levelSize.set(17, 11);
+  levelOffset
+    .set(terminal.size)
+    .sub(levelSize)
+    .div(2)
+    .floor();
+  const level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
   let points: { pos: Vector; angle: number }[] = [];
   const random = new Random();
   points.push({
     pos: new Vector(
-      random.getInt(3, terminal.size.x - 2),
-      random.getInt(3, terminal.size.y - 2)
+      random.getInt(4, levelSize.x - 3),
+      random.getInt(4, levelSize.y - 3)
     ),
     angle: random.getInt(4)
   });
@@ -87,9 +93,9 @@ function generatePath(
     pos.add({ x: ao[0], y: ao[1] });
     if (
       pos.x < 1 ||
-      pos.x > terminal.size.x - 2 ||
+      pos.x > levelSize.x - 2 ||
       pos.y < 1 ||
-      pos.y > terminal.size.y - 2
+      pos.y > levelSize.y - 2
     ) {
       break;
     }
@@ -99,7 +105,6 @@ function generatePath(
         c = random.select(["/", "\\"]);
         points.push({ pos: new Vector(pos), angle: angle - 1 });
         points.push({ pos: new Vector(pos), angle: angle + 1 });
-        console.log(JSON.stringify(points));
         break;
       case 1:
         c = random.select(["-", "|", "s"]);
@@ -150,7 +155,7 @@ function printStageChar(sc, x, y) {
   if (sc.angle != null) {
     options.rotationPattern = ["k", "l", "j", "h"][sc.angle];
   }
-  terminal.print(sc.char, x, y, options);
+  terminal.print(sc.char, levelOffset.x + x, levelOffset.y + y, options);
 }
 
 function initGameOver() {
@@ -163,7 +168,7 @@ function update() {
   view.clear();
   if (isJustPressed) {
     changingCharPoss.forEach(p => {
-      const c = terminal.getCharAt(p.x, p.y);
+      const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
       const sc = getStageChar(c);
       const cc = stageChar[sc.changeTo];
       printStageChar(cc, p.x, p.y);
@@ -239,12 +244,17 @@ function ball(b: Ball, x: number, y: number, _angle: number) {
       const ao = angleOffsets[b.angle];
       text.print(
         "c",
-        (pos.x + (ao[0] * t) / moveDuration) * 6,
-        (pos.y + (ao[1] * t) / moveDuration) * 6,
+        (levelOffset.x + pos.x + (ao[0] * t) / moveDuration) * 6,
+        (levelOffset.y + pos.y + (ao[1] * t) / moveDuration) * 6,
         { symbolPattern: "s" }
       );
     } else {
-      text.print("c", pos.x * 6, pos.y * 6, { symbolPattern: "s" });
+      text.print(
+        "c",
+        (levelOffset.x + pos.x) * 6,
+        (levelOffset.y + pos.y) * 6,
+        { symbolPattern: "s" }
+      );
     }
   });
 }
