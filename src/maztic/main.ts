@@ -1,9 +1,4 @@
-import {
-  init as pglInit,
-  random,
-  clearJustPressed,
-  isJustPressed
-} from "../pgl/main";
+import { init as pglInit, clearJustPressed, isJustPressed } from "../pgl/main";
 import * as view from "../pgl/view";
 import * as text from "../pgl/text";
 import * as terminal from "../pgl/terminal";
@@ -11,12 +6,12 @@ import {
   Actor,
   update as sgaUpdate,
   spawn,
-  reset as sgaReset,
-  pool
+  reset as sgaReset
 } from "../pgl/simpleGameActor";
 import { Vector } from "../pgl/vector";
 import { playScale, scales } from "../pgl/sound";
-import { clamp, wrap } from "../pgl/math";
+import { wrap, range } from "../pgl/math";
+import { Random } from "../pgl/random";
 
 let ticks = 0;
 type State = "title" | "inGame" | "gameOver";
@@ -26,6 +21,7 @@ let updateFunc = {
   inGame: updateInGame,
   gameOver: updateGameOver
 };
+const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 pglInit(init, update, {
   isUsingVirtualPad: false
@@ -47,19 +43,84 @@ function initInGame() {
   state = "inGame";
   sgaReset();
   terminal.clear();
-  initStage(
-    String.raw`
-wwwwwwww
-wwwwZsNw
-wwww w w
-w   / zw
-wwww www
-wwww-www
-wwwwGwww
-wwwwwwww
-`
+  initStage(generateLevel());
+}
+
+function generateLevel() {
+  const level = range(terminal.size.y).map(() =>
+    range(terminal.size.x).map(() => "w")
   );
-  spawn(ball, 1, 4, 0);
+  let points: { pos: Vector; angle: number }[] = [];
+  const random = new Random();
+  points.push({
+    pos: new Vector(
+      random.getInt(3, terminal.size.x - 2),
+      random.getInt(3, terminal.size.y - 2)
+    ),
+    angle: random.getInt(4)
+  });
+  const pc = random.getInt(10, 15);
+  for (let i = 0; i < pc; i++) {
+    if (points.length === 0) {
+      break;
+    }
+    const p = points.pop();
+    generatePath(level, random, p.pos, p.angle, points);
+  }
+  points.map(p => {
+    level[p.pos.y][p.pos.x] = " ";
+  });
+  return level.map(l => l.join("")).join("\n");
+}
+
+function generatePath(
+  level: string[][],
+  random: Random,
+  pos: Vector,
+  _angle: number,
+  points
+) {
+  const angle = wrap(_angle, 0, 4);
+  const ao = angleOffsets[angle];
+  let isBreaking = false;
+  for (let i = 0; i < 99; i++) {
+    pos.add({ x: ao[0], y: ao[1] });
+    if (
+      pos.x < 1 ||
+      pos.x > terminal.size.x - 2 ||
+      pos.y < 1 ||
+      pos.y > terminal.size.y - 2
+    ) {
+      break;
+    }
+    let c = " ";
+    switch (random.getInt(10)) {
+      case 0:
+        c = random.select(["/", "\\"]);
+        points.push({ pos: new Vector(pos), angle: angle - 1 });
+        points.push({ pos: new Vector(pos), angle: angle + 1 });
+        console.log(JSON.stringify(points));
+        break;
+      case 1:
+        c = random.select(["-", "|", "s"]);
+        break;
+      case 2:
+        c = random.select(["N", "Z", "n", "z"]);
+        const b = { angle };
+        stageChar[c].onHit(b);
+        if (wrap(angle - b.angle, 0, 4) === 2) {
+          c = " ";
+          break;
+        }
+        points.push({ pos: new Vector(pos), angle: b.angle });
+        isBreaking = true;
+        break;
+    }
+    level[pos.y][pos.x] = c;
+    if (isBreaking) {
+      break;
+    }
+  }
 }
 
 let changingCharPoss: Vector[];
@@ -113,8 +174,6 @@ function update() {
   updateFunc[state]();
   ticks++;
 }
-
-const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 interface Ball extends Actor {
   angle: number;
