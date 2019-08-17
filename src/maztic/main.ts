@@ -22,9 +22,6 @@ let updateFunc = {
   inGame: updateInGame,
   gameOver: updateGameOver
 };
-const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-const levelSize = new Vector();
-const levelOffset = new Vector();
 
 pglInit(init, update, {
   isUsingVirtualPad: false
@@ -44,10 +41,24 @@ function initTitle() {
 
 function initInGame() {
   state = "inGame";
-  sgaReset();
-  terminal.clear();
-  initStage(generateLevel());
+  for (let i = 0; i < 9; i++) {
+    sgaReset();
+    terminal.clear();
+    generateLevel();
+    if (stageTime < 20 && pool.get(ball).length > 0) {
+      break;
+    }
+  }
 }
+
+const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+const levelSize = new Vector();
+const levelOffset = new Vector();
+let level: string[][];
+let ballPlaces: { pos: Vector; angle: number }[];
+let stageTime: number;
+const ballMoveDuration = 10;
+const ballStepDuration = 20;
 
 function generateLevel() {
   levelSize.set(17, 11);
@@ -56,7 +67,7 @@ function generateLevel() {
     .sub(levelSize)
     .div(2)
     .floor();
-  const level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
+  level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
   const random = new Random();
   let points: { pos: Vector; angle: number }[] = [];
   let pathCount = (levelSize.x - 2) * (levelSize.y - 2) * random.get(0.3, 0.4);
@@ -80,6 +91,7 @@ function generateLevel() {
     level[p.pos.y][p.pos.x] = " ";
   });
   let balLCount = 3;
+  ballPlaces = [];
   for (let i = 0; i < 99; i++) {
     const p = new Vector(
       random.getInt(1, levelSize.x - 1),
@@ -97,16 +109,71 @@ function generateLevel() {
         angle = wrap(angle + 1, 0, 4);
       }
       if (!isSpace) {
-        break;
+        continue;
       }
-      spawn(ball, levelOffset.x + p.x, levelOffset.y + p.y, angle);
+      ballPlaces.push({ pos: p, angle });
+      level[p.y][p.x] = "w";
       balLCount--;
       if (balLCount === 0) {
         break;
       }
     }
   }
-  return level.map(l => l.join("")).join("\n");
+  ballPlaces.forEach(bp => {
+    level[bp.pos.y][bp.pos.x] = " ";
+  });
+  initStage(level.map(l => l.join("")).join("\n"));
+  ballPlaces.forEach(bp => {
+    spawn(
+      ball,
+      levelOffset.x + bp.pos.x,
+      levelOffset.y + bp.pos.y,
+      bp.angle,
+      false
+    );
+  });
+  stageTime = 0;
+  for (let i = 0; i < 99; i++) {
+    for (let j = 0; j < ballStepDuration; j++) {
+      sgaUpdate();
+    }
+    stageTime++;
+    if (random.get() < 0.25) {
+      changeStageChars();
+    }
+    if (random.get() < 2 / Math.sqrt(i + 1)) {
+      continue;
+    }
+    let isGoal = true;
+    pool.get(ball).forEach((b: Ball) => {
+      const lx = b.pos.x - levelOffset.x;
+      const ly = b.pos.y - levelOffset.y;
+      if (level[ly][lx] !== " ") {
+        isGoal = false;
+      }
+    });
+    if (!isGoal) {
+      continue;
+    }
+    pool.get(ball).forEach((b: Ball) => {
+      const lx = b.pos.x - levelOffset.x;
+      const ly = b.pos.y - levelOffset.y;
+      level[ly][lx] = "G";
+    });
+    break;
+  }
+  resetStage();
+}
+
+let time: number;
+
+function resetStage() {
+  sgaReset();
+  initStage(level.map(l => l.join("")).join("\n"));
+  ballPlaces.forEach(bp => {
+    spawn(ball, levelOffset.x + bp.pos.x, levelOffset.y + bp.pos.y, bp.angle);
+  });
+  time = stageTime * ballStepDuration;
 }
 
 function generatePath(
@@ -196,17 +263,26 @@ function initGameOver() {
 function update() {
   view.clear();
   if (isJustPressed) {
-    changingCharPoss.forEach(p => {
-      const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
-      const sc = getStageChar(c);
-      const cc = stageChar[sc.changeTo];
-      printStageChar(cc, p.x, p.y);
-    });
+    changeStageChars();
   }
   terminal.draw();
   sgaUpdate();
   updateFunc[state]();
+  terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
+  time--;
+  if (time < 0) {
+    resetStage();
+  }
   ticks++;
+}
+
+function changeStageChars() {
+  changingCharPoss.forEach(p => {
+    const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
+    const sc = getStageChar(c);
+    const cc = stageChar[sc.changeTo];
+    printStageChar(cc, p.x, p.y);
+  });
 }
 
 interface Ball extends Actor {
@@ -221,7 +297,7 @@ interface Ball extends Actor {
   reflect: Function;
 }
 
-function ball(b: Ball, x: number, y: number, _angle: number) {
+function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   b.pos = new Vector(x, y);
   const pos = b.pos;
   const prevPos = new Vector(x, y);
@@ -265,23 +341,24 @@ function ball(b: Ball, x: number, y: number, _angle: number) {
   };
   b.addUpdater(() => {
     ticks++;
-    const moveDuration = 10;
-    const stepDuration = 20;
-    const t = ticks % stepDuration;
+    const t = ticks % ballStepDuration;
     if (t === 0) {
       b.checkHit();
       b.step();
       b.checkHit("beforeHit");
       b.stepBack();
-    } else if (t === moveDuration) {
+    } else if (t === ballMoveDuration) {
       b.step();
     }
-    if (t < moveDuration) {
+    if (!isVisible) {
+      return;
+    }
+    if (t < ballMoveDuration) {
       const ao = angleOffsets[b.angle];
       text.print(
         "c",
-        (pos.x + (ao[0] * t) / moveDuration) * 6,
-        (pos.y + (ao[1] * t) / moveDuration) * 6,
+        (pos.x + (ao[0] * t) / ballMoveDuration) * 6,
+        (pos.y + (ao[1] * t) / ballMoveDuration) * 6,
         { symbolPattern: "s" }
       );
     } else {
