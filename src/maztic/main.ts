@@ -6,7 +6,8 @@ import {
   Actor,
   update as sgaUpdate,
   spawn,
-  reset as sgaReset
+  reset as sgaReset,
+  pool
 } from "../pgl/simpleGameActor";
 import { Vector } from "../pgl/vector";
 import { playScale, scales } from "../pgl/sound";
@@ -78,6 +79,33 @@ function generateLevel() {
   points.map(p => {
     level[p.pos.y][p.pos.x] = " ";
   });
+  let balLCount = 3;
+  for (let i = 0; i < 99; i++) {
+    const p = new Vector(
+      random.getInt(1, levelSize.x - 1),
+      random.getInt(1, levelSize.y - 1)
+    );
+    if (level[p.y][p.x] === " ") {
+      let angle = random.getInt(4);
+      let isSpace = false;
+      for (let j = 0; j < 4; j++) {
+        const ao = angleOffsets[angle];
+        if (level[p.y + ao[1]][p.x + ao[0]] !== "w") {
+          isSpace = true;
+          break;
+        }
+        angle = wrap(angle + 1, 0, 4);
+      }
+      if (!isSpace) {
+        break;
+      }
+      spawn(ball, levelOffset.x + p.x, levelOffset.y + p.y, angle);
+      balLCount--;
+      if (balLCount === 0) {
+        break;
+      }
+    }
+  }
   return level.map(l => l.join("")).join("\n");
 }
 
@@ -182,6 +210,7 @@ function update() {
 }
 
 interface Ball extends Actor {
+  pos: Vector;
   angle: number;
   step: Function;
   stepBack: Function;
@@ -193,7 +222,8 @@ interface Ball extends Actor {
 }
 
 function ball(b: Ball, x: number, y: number, _angle: number) {
-  const pos = new Vector(x, y);
+  b.pos = new Vector(x, y);
+  const pos = b.pos;
   const prevPos = new Vector(x, y);
   let ticks = -1;
   b.angle = _angle;
@@ -213,7 +243,12 @@ function ball(b: Ball, x: number, y: number, _angle: number) {
     }
   };
   b.getStageChar = () => {
-    const c = terminal.getCharAt(pos.x, pos.y);
+    let c = terminal.getCharAt(pos.x, pos.y);
+    pool.get(ball).map((ab: Ball) => {
+      if (b !== ab && pos.x === ab.pos.x && pos.y === ab.pos.y) {
+        c.char = "b";
+      }
+    });
     return getStageChar(c);
   };
   b.removeStage = () => {
@@ -231,7 +266,7 @@ function ball(b: Ball, x: number, y: number, _angle: number) {
   b.addUpdater(() => {
     ticks++;
     const moveDuration = 10;
-    const stepDuration = 30;
+    const stepDuration = 20;
     const t = ticks % stepDuration;
     if (t === 0) {
       b.checkHit();
@@ -245,17 +280,12 @@ function ball(b: Ball, x: number, y: number, _angle: number) {
       const ao = angleOffsets[b.angle];
       text.print(
         "c",
-        (levelOffset.x + pos.x + (ao[0] * t) / moveDuration) * 6,
-        (levelOffset.y + pos.y + (ao[1] * t) / moveDuration) * 6,
+        (pos.x + (ao[0] * t) / moveDuration) * 6,
+        (pos.y + (ao[1] * t) / moveDuration) * 6,
         { symbolPattern: "s" }
       );
     } else {
-      text.print(
-        "c",
-        (levelOffset.x + pos.x) * 6,
-        (levelOffset.y + pos.y) * 6,
-        { symbolPattern: "s" }
-      );
+      text.print("c", pos.x * 6, pos.y * 6, { symbolPattern: "s" });
     }
   });
 }
@@ -359,6 +389,17 @@ const stageChar = {
   },
   G: {
     char: "G"
+  },
+  b: {
+    char: "b",
+    beforeHit: b => {
+      b.reflect();
+      b.stepBack();
+      b.checkHit();
+    },
+    onHit: b => {
+      b.reflect();
+    }
   }
 };
 
