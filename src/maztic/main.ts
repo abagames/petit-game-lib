@@ -1,4 +1,9 @@
-import { init as pglInit, clearJustPressed, isJustPressed } from "../pgl/main";
+import {
+  init as pglInit,
+  clearJustPressed,
+  isJustPressed,
+  random
+} from "../pgl/main";
 import * as view from "../pgl/view";
 import * as text from "../pgl/text";
 import * as terminal from "../pgl/terminal";
@@ -60,6 +65,7 @@ function startLevel() {
   terminal.clear();
   printLevelCount();
   terminal.draw();
+  //random.setSeed(levelCount);
   isGeneratingLevel = true;
 }
 
@@ -97,7 +103,10 @@ function tryToGenerateLevel() {
   terminal.clear();
   generateLevel();
   if (levelTime < 20 && pool.get(ball).length > 0) {
-    isGeneratingLevel = false;
+    if (checkLevel()) {
+      resetLevel();
+      isGeneratingLevel = false;
+    }
   }
 }
 
@@ -109,7 +118,6 @@ function generateLevel() {
     .div(2)
     .floor();
   level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
-  const random = new Random();
   let points: { pos: Vector; angle: number }[] = [];
   let pathCount = (levelSize.x - 2) * (levelSize.y - 2) * random.get(0.3, 0.4);
   for (let i = 0; i < 99; i++) {
@@ -143,7 +151,7 @@ function generateLevel() {
       let isSpace = false;
       for (let j = 0; j < 4; j++) {
         const ao = angleOffsets[angle];
-        if (level[p.y + ao[1]][p.x + ao[0]] !== "w") {
+        if (level[p.y + ao[1]][p.x + ao[0]] === " ") {
           isSpace = true;
           break;
         }
@@ -203,16 +211,40 @@ function generateLevel() {
     });
     break;
   }
-  resetLevel();
+}
+
+function checkLevel() {
+  resetLevel(false);
+  for (let i = 0; i < levelTime * ballStepDuration; i++) {
+    sgaUpdate();
+  }
+  return !checkGoal();
+}
+
+function checkGoal() {
+  let isGoal = true;
+  pool.get(ball).forEach((b: Ball) => {
+    const lc = b.getLevelChar();
+    if (lc == null || lc.char !== "G") {
+      isGoal = false;
+    }
+  });
+  return isGoal;
 }
 
 let time: number;
 
-function resetLevel() {
+function resetLevel(isBallVisible = true) {
   sgaReset();
   printLevel(level.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
-    spawn(ball, levelOffset.x + bp.pos.x, levelOffset.y + bp.pos.y, bp.angle);
+    spawn(
+      ball,
+      levelOffset.x + bp.pos.x,
+      levelOffset.y + bp.pos.y,
+      bp.angle,
+      isBallVisible
+    );
   });
   time = levelTime * ballStepDuration;
 }
@@ -408,6 +440,9 @@ const levelChar = {
       b.reflect();
       b.stepBack();
       b.checkHit();
+    },
+    onHit: b => {
+      b.reflect();
     }
   },
   "/": {
