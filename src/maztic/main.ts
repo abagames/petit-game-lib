@@ -39,26 +39,67 @@ function initTitle() {
   sgaReset();
 }
 
-function initInGame() {
-  state = "inGame";
-  for (let i = 0; i < 9; i++) {
-    sgaReset();
-    terminal.clear();
-    generateLevel();
-    if (levelTime < 20 && pool.get(ball).length > 0) {
-      break;
-    }
-  }
-}
-
+const ballMoveDuration = 10;
+const ballStepDuration = 20;
 const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 const levelSize = new Vector();
 const levelOffset = new Vector();
 let level: string[][];
 let ballPlaces: { pos: Vector; angle: number }[];
 let levelTime: number;
-const ballMoveDuration = 10;
-const ballStepDuration = 20;
+let isGeneratingLevel: boolean;
+let levelCount = 0;
+
+function initInGame() {
+  state = "inGame";
+  startLevel();
+}
+
+function startLevel() {
+  view.clear();
+  terminal.clear();
+  printLevelCount();
+  terminal.draw();
+  isGeneratingLevel = true;
+}
+
+function update() {
+  if (isGeneratingLevel) {
+    tryToGenerateLevel();
+    return;
+  }
+  view.clear();
+  if (isJustPressed) {
+    changeLevelChars();
+  }
+  terminal.draw();
+  sgaUpdate();
+  updateFunc[state]();
+  terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
+  time--;
+  if (time < 0) {
+    resetLevel();
+  }
+  ticks++;
+}
+
+function changeLevelChars() {
+  changingCharPoss.forEach(p => {
+    const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
+    const sc = getLevelChar(c);
+    const cc = levelChar[sc.changeTo];
+    printLevelChar(cc, p.x, p.y);
+  });
+}
+
+function tryToGenerateLevel() {
+  sgaReset();
+  terminal.clear();
+  generateLevel();
+  if (levelTime < 20 && pool.get(ball).length > 0) {
+    isGeneratingLevel = false;
+  }
+}
 
 function generateLevel() {
   levelSize.set(17, 11);
@@ -122,7 +163,7 @@ function generateLevel() {
   ballPlaces.forEach(bp => {
     level[bp.pos.y][bp.pos.x] = " ";
   });
-  initLevel(level.map(l => l.join("")).join("\n"));
+  printLevel(level.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
     spawn(
       ball,
@@ -169,7 +210,7 @@ let time: number;
 
 function resetLevel() {
   sgaReset();
-  initLevel(level.map(l => l.join("")).join("\n"));
+  printLevel(level.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
     spawn(ball, levelOffset.x + bp.pos.x, levelOffset.y + bp.pos.y, bp.angle);
   });
@@ -226,9 +267,10 @@ function generatePath(
 
 let changingCharPoss: Vector[];
 
-function initLevel(levelPattern: string) {
+function printLevel(levelPattern: string) {
   changingCharPoss = [];
   terminal.clear();
+  printLevelCount();
   levelPattern.split("\n").forEach((l, y) => {
     for (let x = 0; x < l.length; x++) {
       const c = l[x];
@@ -254,35 +296,14 @@ function printLevelChar(sc, x, y) {
   terminal.print(sc.char, levelOffset.x + x, levelOffset.y + y, options);
 }
 
+function printLevelCount() {
+  terminal.print(`LEVEL ${levelCount + 1}`, 0, 20);
+}
+
 function initGameOver() {
   state = "gameOver";
   clearJustPressed();
   ticks = 0;
-}
-
-function update() {
-  view.clear();
-  if (isJustPressed) {
-    changeLevelChars();
-  }
-  terminal.draw();
-  sgaUpdate();
-  updateFunc[state]();
-  terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
-  time--;
-  if (time < 0) {
-    resetLevel();
-  }
-  ticks++;
-}
-
-function changeLevelChars() {
-  changingCharPoss.forEach(p => {
-    const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
-    const sc = getLevelChar(c);
-    const cc = levelChar[sc.changeTo];
-    printLevelChar(cc, p.x, p.y);
-  });
 }
 
 interface Ball extends Actor {
