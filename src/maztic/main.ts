@@ -16,7 +16,7 @@ import {
 } from "../pgl/simpleGameActor";
 import { Vector } from "../pgl/vector";
 import { playScale, scales } from "../pgl/sound";
-import { wrap, range } from "../pgl/math";
+import { wrap, range, clamp } from "../pgl/math";
 import { Random } from "../pgl/random";
 
 let ticks = 0;
@@ -49,6 +49,8 @@ const ballStepDuration = 20;
 const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 const levelSize = new Vector();
 const levelOffset = new Vector();
+let ballCount: number;
+let levelTimeTarget: number;
 let level: string[][];
 let ballPlaces: { pos: Vector; angle: number }[];
 let levelTime: number;
@@ -67,7 +69,18 @@ function startLevel() {
   terminal.clear();
   printLevelCount();
   terminal.draw();
-  //random.setSeed(levelCount);
+  random.setSeed(levelCount * 2);
+  levelSize.set(random.getInt(7, 15), random.getInt(7, 15));
+  ballCount = clamp(
+    random.getInt(Math.floor(1.8 + Math.sqrt(levelCount * 0.2))),
+    1,
+    5
+  );
+  levelTimeTarget = clamp(
+    random.getInt(4, Math.floor(5 + Math.sqrt(levelCount * 5))),
+    5,
+    18
+  );
   isGeneratingLevel = true;
 }
 
@@ -122,7 +135,6 @@ function tryToGenerateLevel() {
 }
 
 function generateLevel() {
-  levelSize.set(17, 11);
   levelOffset
     .set(terminal.size)
     .sub(levelSize)
@@ -138,8 +150,8 @@ function generateLevel() {
     if (points.length === 0) {
       points.push({
         pos: new Vector(
-          random.getInt(4, levelSize.x - 3),
-          random.getInt(4, levelSize.y - 3)
+          random.getInt(1, levelSize.x - 2),
+          random.getInt(1, levelSize.y - 2)
         ),
         angle: random.getInt(4)
       });
@@ -150,8 +162,8 @@ function generateLevel() {
   points.map(p => {
     level[p.pos.y][p.pos.x] = " ";
   });
-  let balLCount = 3;
   ballPlaces = [];
+  let bc = ballCount;
   for (let i = 0; i < 99; i++) {
     const p = new Vector(
       random.getInt(1, levelSize.x - 1),
@@ -173,8 +185,8 @@ function generateLevel() {
       }
       ballPlaces.push({ pos: p, angle });
       level[p.y][p.x] = "w";
-      balLCount--;
-      if (balLCount === 0) {
+      bc--;
+      if (bc === 0) {
         break;
       }
     }
@@ -201,7 +213,7 @@ function generateLevel() {
     if (random.get() < 0.25) {
       changeLevelChars();
     }
-    if (random.get() < 2 / Math.sqrt(i + 1)) {
+    if (i < levelTimeTarget) {
       continue;
     }
     let isGoal = true;
