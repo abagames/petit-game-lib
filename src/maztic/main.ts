@@ -54,6 +54,7 @@ let ballPlaces: { pos: Vector; angle: number }[];
 let levelTime: number;
 let isGeneratingLevel: boolean;
 let levelCount = 0;
+let isSuccess: boolean;
 
 function initInGame() {
   state = "inGame";
@@ -61,6 +62,7 @@ function initInGame() {
 }
 
 function startLevel() {
+  levelCount++;
   view.clear();
   terminal.clear();
   printLevelCount();
@@ -81,10 +83,19 @@ function update() {
   terminal.draw();
   sgaUpdate();
   updateFunc[state]();
-  terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
   time--;
-  if (time < 0) {
-    resetLevel();
+  if (time > 0) {
+    terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
+  }
+  if (time === 0) {
+    isSuccess = checkGoal();
+    terminal.print(isSuccess ? "SUCCESS" : "FAIL  ", 0, 0);
+  } else if (time === -40) {
+    if (isSuccess) {
+      startLevel();
+    } else {
+      resetLevel();
+    }
   }
   ticks++;
 }
@@ -224,7 +235,7 @@ function checkLevel() {
 function checkGoal() {
   let isGoal = true;
   pool.get(ball).forEach((b: Ball) => {
-    const lc = b.getLevelChar();
+    const lc = b.getLevelChar(false);
     if (lc == null || lc.char !== "G") {
       isGoal = false;
     }
@@ -329,7 +340,7 @@ function printLevelChar(sc, x, y) {
 }
 
 function printLevelCount() {
-  terminal.print(`LEVEL ${levelCount + 1}`, 0, 20);
+  terminal.print(`LEVEL ${levelCount}`, 0, 20);
 }
 
 function initGameOver() {
@@ -371,13 +382,15 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
       b.stepBack();
     }
   };
-  b.getLevelChar = () => {
+  b.getLevelChar = (isCheckingBall = true) => {
     let c = terminal.getCharAt(pos.x, pos.y);
-    pool.get(ball).map((ab: Ball) => {
-      if (b !== ab && pos.x === ab.pos.x && pos.y === ab.pos.y) {
-        c.char = "b";
-      }
-    });
+    if (isCheckingBall) {
+      pool.get(ball).map((ab: Ball) => {
+        if (b !== ab && pos.x === ab.pos.x && pos.y === ab.pos.y) {
+          c.char = "b";
+        }
+      });
+    }
     return getLevelChar(c);
   };
   b.removeLevelChar = () => {
@@ -394,7 +407,8 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   };
   b.addUpdater(() => {
     ticks++;
-    const t = ticks % ballStepDuration;
+    const t =
+      !isVisible || time > 0 ? ticks % ballStepDuration : ballMoveDuration + 1;
     if (t === 0) {
       b.checkHit();
       b.step();
