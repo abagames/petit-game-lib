@@ -45,7 +45,7 @@ function initInGame() {
     sgaReset();
     terminal.clear();
     generateLevel();
-    if (stageTime < 20 && pool.get(ball).length > 0) {
+    if (levelTime < 20 && pool.get(ball).length > 0) {
       break;
     }
   }
@@ -56,7 +56,7 @@ const levelSize = new Vector();
 const levelOffset = new Vector();
 let level: string[][];
 let ballPlaces: { pos: Vector; angle: number }[];
-let stageTime: number;
+let levelTime: number;
 const ballMoveDuration = 10;
 const ballStepDuration = 20;
 
@@ -122,7 +122,7 @@ function generateLevel() {
   ballPlaces.forEach(bp => {
     level[bp.pos.y][bp.pos.x] = " ";
   });
-  initStage(level.map(l => l.join("")).join("\n"));
+  initLevel(level.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
     spawn(
       ball,
@@ -132,14 +132,14 @@ function generateLevel() {
       false
     );
   });
-  stageTime = 0;
+  levelTime = 0;
   for (let i = 0; i < 99; i++) {
     for (let j = 0; j < ballStepDuration; j++) {
       sgaUpdate();
     }
-    stageTime++;
+    levelTime++;
     if (random.get() < 0.25) {
-      changeStageChars();
+      changeLevelChars();
     }
     if (random.get() < 2 / Math.sqrt(i + 1)) {
       continue;
@@ -162,18 +162,18 @@ function generateLevel() {
     });
     break;
   }
-  resetStage();
+  resetLevel();
 }
 
 let time: number;
 
-function resetStage() {
+function resetLevel() {
   sgaReset();
-  initStage(level.map(l => l.join("")).join("\n"));
+  initLevel(level.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
     spawn(ball, levelOffset.x + bp.pos.x, levelOffset.y + bp.pos.y, bp.angle);
   });
-  time = stageTime * ballStepDuration;
+  time = levelTime * ballStepDuration;
 }
 
 function generatePath(
@@ -203,7 +203,7 @@ function generatePath(
       points.push({ pos: new Vector(pos), angle: angle + 1 });
     } else if (c === "N" || c === "Z" || c === "n" || c === "z") {
       const b = { angle };
-      stageChar[c].onHit(b);
+      levelChar[c].onHit(b);
       if (wrap(angle - b.angle, 0, 4) === 2) {
         c = " ";
         break;
@@ -226,15 +226,15 @@ function generatePath(
 
 let changingCharPoss: Vector[];
 
-function initStage(stagePattern: string) {
+function initLevel(levelPattern: string) {
   changingCharPoss = [];
   terminal.clear();
-  stagePattern.split("\n").forEach((l, y) => {
+  levelPattern.split("\n").forEach((l, y) => {
     for (let x = 0; x < l.length; x++) {
       const c = l[x];
-      const sc = stageChar[c];
+      const sc = levelChar[c];
       if (sc != null) {
-        printStageChar(sc, x, y);
+        printLevelChar(sc, x, y);
         if (sc.changeTo != null) {
           changingCharPoss.push(new Vector(x, y));
         }
@@ -243,7 +243,7 @@ function initStage(stagePattern: string) {
   });
 }
 
-function printStageChar(sc, x, y) {
+function printLevelChar(sc, x, y) {
   let options = {} as any;
   if (sc.isSymbol) {
     options.symbolPattern = "s";
@@ -263,7 +263,7 @@ function initGameOver() {
 function update() {
   view.clear();
   if (isJustPressed) {
-    changeStageChars();
+    changeLevelChars();
   }
   terminal.draw();
   sgaUpdate();
@@ -271,17 +271,17 @@ function update() {
   terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
   time--;
   if (time < 0) {
-    resetStage();
+    resetLevel();
   }
   ticks++;
 }
 
-function changeStageChars() {
+function changeLevelChars() {
   changingCharPoss.forEach(p => {
     const c = terminal.getCharAt(levelOffset.x + p.x, levelOffset.y + p.y);
-    const sc = getStageChar(c);
-    const cc = stageChar[sc.changeTo];
-    printStageChar(cc, p.x, p.y);
+    const sc = getLevelChar(c);
+    const cc = levelChar[sc.changeTo];
+    printLevelChar(cc, p.x, p.y);
   });
 }
 
@@ -291,8 +291,8 @@ interface Ball extends Actor {
   step: Function;
   stepBack: Function;
   stepIfNoWall: Function;
-  getStageChar: Function;
-  removeStage: Function;
+  getLevelChar: Function;
+  removeLevelChar: Function;
   checkHit: Function;
   reflect: Function;
 }
@@ -313,25 +313,25 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   };
   b.stepIfNoWall = () => {
     b.step();
-    const sc = b.getStageChar();
+    const sc = b.getLevelChar();
     if (sc.char === "w") {
       b.stepBack();
     }
   };
-  b.getStageChar = () => {
+  b.getLevelChar = () => {
     let c = terminal.getCharAt(pos.x, pos.y);
     pool.get(ball).map((ab: Ball) => {
       if (b !== ab && pos.x === ab.pos.x && pos.y === ab.pos.y) {
         c.char = "b";
       }
     });
-    return getStageChar(c);
+    return getLevelChar(c);
   };
-  b.removeStage = () => {
+  b.removeLevelChar = () => {
     terminal.print(" ", pos.x, pos.y);
   };
   b.checkHit = (func = "onHit") => {
-    const sc = b.getStageChar();
+    const sc = b.getLevelChar();
     if (sc != null && sc[func] != null) {
       sc[func](b);
     }
@@ -367,10 +367,10 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   });
 }
 
-function getStageChar(tc: { char: string; options: text.CharOptions }) {
+function getLevelChar(tc: { char: string; options: text.CharOptions }) {
   let result;
-  Object.keys(stageChar).forEach(k => {
-    const sc = stageChar[k];
+  Object.keys(levelChar).forEach(k => {
+    const sc = levelChar[k];
     const ai = sc.angle == null ? 0 : sc.angle;
     if (tc.char === sc.char && tc.options.angleIndex == ai) {
       result = sc;
@@ -379,7 +379,7 @@ function getStageChar(tc: { char: string; options: text.CharOptions }) {
   return result;
 }
 
-const stageChar = {
+const levelChar = {
   w: {
     char: "w",
     isSymbol: true,
@@ -458,7 +458,7 @@ const stageChar = {
     char: "s",
     isSymbol: true,
     beforeHit: b => {
-      b.removeStage();
+      b.removeLevelChar();
       b.reflect();
       b.stepBack();
       b.checkHit();
