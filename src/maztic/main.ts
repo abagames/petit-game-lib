@@ -76,22 +76,17 @@ function startLevel() {
   printLevelCount(true);
   terminal.draw();
   random.setSeed(levelCount * 12);
-  levelSize.set(random.getInt(7, 15), random.getInt(7, 15));
+  levelSize.set(
+    clamp(random.getInt(Math.floor(levelCount / 3) + 1) + 7, 7, 15),
+    clamp(random.getInt(Math.floor(levelCount / 3) + 1) + 7, 7, 15)
+  );
+  ballCount = clamp(random.getInt(Math.floor(levelCount / 10) + 1) + 1, 1, 5);
+  levelTimeTarget = clamp(random.getInt(levelCount + 1) + 5, 5, 20);
   levelOffset
     .set(terminal.size)
     .sub(levelSize)
     .div(2)
     .floor();
-  ballCount = clamp(
-    random.getInt(Math.floor(1.8 + Math.sqrt(levelCount * 0.2))),
-    1,
-    5
-  );
-  levelTimeTarget = clamp(
-    random.getInt(4, Math.floor(5 + Math.sqrt(levelCount * 5))),
-    5,
-    18
-  );
   levels = [];
   isGeneratingLevel = true;
 }
