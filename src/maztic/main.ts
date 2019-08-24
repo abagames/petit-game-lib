@@ -163,9 +163,6 @@ function generateLevel() {
     time: 0,
     score: 0
   };
-  const gridScore = range(levelSize.y).map(() =>
-    range(levelSize.x).map(() => 0)
-  );
   const levelGrid = level.grid;
   const ballPlaces = level.ballPlaces;
   let points: { pos: Vector; angle: number }[] = [];
@@ -231,6 +228,9 @@ function generateLevel() {
     );
   });
   level.time = 0;
+  const gridScore = range(levelSize.y).map(() =>
+    range(levelSize.x).map(() => 0)
+  );
   for (let i = 0; i < 99; i++) {
     for (let j = 0; j < ballStepDuration; j++) {
       sgaUpdate();
@@ -238,9 +238,6 @@ function generateLevel() {
     level.time++;
     if (random.get() < 0.25) {
       changeLevelChars();
-    }
-    if (i < levelTimeTarget) {
-      continue;
     }
     let isGoal = true;
     pool.get(ball).forEach((b: Ball) => {
@@ -253,7 +250,7 @@ function generateLevel() {
         gridScore[ly][lx] = 1;
       }
     });
-    if (!isGoal) {
+    if (i < levelTimeTarget || !isGoal) {
       continue;
     }
     pool.get(ball).forEach((b: Ball) => {
