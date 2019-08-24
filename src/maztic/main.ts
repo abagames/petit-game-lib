@@ -16,7 +16,7 @@ import {
 } from "../pgl/simpleGameActor";
 import { Vector } from "../pgl/vector";
 import { playScale, scales } from "../pgl/sound";
-import { wrap, range, clamp } from "../pgl/math";
+import { wrap, range, clamp, stableSort } from "../pgl/math";
 import { Random } from "../pgl/random";
 
 let ticks = 0;
@@ -44,6 +44,13 @@ function initTitle() {
   sgaReset();
 }
 
+type Level = {
+  grid: string[][];
+  ballPlaces: { pos: Vector; angle: number }[];
+  time: number;
+  score: number;
+};
+
 const ballMoveDuration = 10;
 const ballStepDuration = 20;
 const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -51,9 +58,8 @@ const levelSize = new Vector();
 const levelOffset = new Vector();
 let ballCount: number;
 let levelTimeTarget: number;
-let level: string[][];
-let ballPlaces: { pos: Vector; angle: number }[];
-let levelTime: number;
+let levels: Level[];
+let currentLevel: Level;
 let isGeneratingLevel: boolean;
 let levelCount = 0;
 let isSuccess: boolean;
@@ -67,10 +73,15 @@ function startLevel() {
   levelCount++;
   view.clear();
   terminal.clear();
-  printLevelCount();
+  printLevelCount(true);
   terminal.draw();
-  random.setSeed(levelCount * 2);
+  random.setSeed(levelCount * 12);
   levelSize.set(random.getInt(7, 15), random.getInt(7, 15));
+  levelOffset
+    .set(terminal.size)
+    .sub(levelSize)
+    .div(2)
+    .floor();
   ballCount = clamp(
     random.getInt(Math.floor(1.8 + Math.sqrt(levelCount * 0.2))),
     1,
@@ -81,6 +92,7 @@ function startLevel() {
     5,
     18
   );
+  levels = [];
   isGeneratingLevel = true;
 }
 
@@ -107,7 +119,7 @@ function update() {
     if (isSuccess) {
       startLevel();
     } else {
-      resetLevel();
+      resetLevel(currentLevel);
     }
   }
   ticks++;
@@ -125,22 +137,37 @@ function changeLevelChars() {
 function tryToGenerateLevel() {
   sgaReset();
   terminal.clear();
-  generateLevel();
-  if (levelTime < 20 && pool.get(ball).length > 0) {
-    if (checkLevel()) {
-      resetLevel();
-      isGeneratingLevel = false;
-    }
+  const level = generateLevel();
+  if (level.time > 20) {
+    level.score -= (level.time - 20) * 10;
+  }
+  if (level.ballPlaces.length === 0) {
+    level.score -= 1000;
+  }
+  if (!checkLevel(level) || !checkLevel(level, true)) {
+    level.score -= 100;
+  }
+  levels.push(level);
+  if (levels.length === 60) {
+    levels = stableSort(levels, (l1, l2) => l2.score - l1.score);
+    currentLevel = levels[0];
+    resetLevel(currentLevel);
+    isGeneratingLevel = false;
   }
 }
 
 function generateLevel() {
-  levelOffset
-    .set(terminal.size)
-    .sub(levelSize)
-    .div(2)
-    .floor();
-  level = range(levelSize.y).map(() => range(levelSize.x).map(() => "w"));
+  const level: Level = {
+    grid: range(levelSize.y).map(() => range(levelSize.x).map(() => "w")),
+    ballPlaces: [],
+    time: 0,
+    score: 0
+  };
+  const gridScore = range(levelSize.y).map(() =>
+    range(levelSize.x).map(() => 0)
+  );
+  const levelGrid = level.grid;
+  const ballPlaces = level.ballPlaces;
   let points: { pos: Vector; angle: number }[] = [];
   let pathCount = (levelSize.x - 2) * (levelSize.y - 2) * random.get(0.3, 0.4);
   for (let i = 0; i < 99; i++) {
@@ -157,24 +184,23 @@ function generateLevel() {
       });
     }
     const p = points.pop();
-    pathCount -= generatePath(level, random, p.pos, p.angle, points);
+    pathCount -= generatePath(levelGrid, random, p.pos, p.angle, points);
   }
   points.map(p => {
-    level[p.pos.y][p.pos.x] = " ";
+    levelGrid[p.pos.y][p.pos.x] = " ";
   });
-  ballPlaces = [];
   let bc = ballCount;
   for (let i = 0; i < 99; i++) {
     const p = new Vector(
       random.getInt(1, levelSize.x - 1),
       random.getInt(1, levelSize.y - 1)
     );
-    if (level[p.y][p.x] === " ") {
+    if (levelGrid[p.y][p.x] === " ") {
       let angle = random.getInt(4);
       let isSpace = false;
       for (let j = 0; j < 4; j++) {
         const ao = angleOffsets[angle];
-        if (level[p.y + ao[1]][p.x + ao[0]] === " ") {
+        if (levelGrid[p.y + ao[1]][p.x + ao[0]] === " ") {
           isSpace = true;
           break;
         }
@@ -184,7 +210,7 @@ function generateLevel() {
         continue;
       }
       ballPlaces.push({ pos: p, angle });
-      level[p.y][p.x] = "w";
+      levelGrid[p.y][p.x] = "w";
       bc--;
       if (bc === 0) {
         break;
@@ -192,9 +218,9 @@ function generateLevel() {
     }
   }
   ballPlaces.forEach(bp => {
-    level[bp.pos.y][bp.pos.x] = " ";
+    levelGrid[bp.pos.y][bp.pos.x] = " ";
   });
-  printLevel(level.map(l => l.join("")).join("\n"));
+  printLevel(levelGrid.map(l => l.join("")).join("\n"));
   ballPlaces.forEach(bp => {
     spawn(
       ball,
@@ -204,12 +230,12 @@ function generateLevel() {
       false
     );
   });
-  levelTime = 0;
+  level.time = 0;
   for (let i = 0; i < 99; i++) {
     for (let j = 0; j < ballStepDuration; j++) {
       sgaUpdate();
     }
-    levelTime++;
+    level.time++;
     if (random.get() < 0.25) {
       changeLevelChars();
     }
@@ -220,8 +246,11 @@ function generateLevel() {
     pool.get(ball).forEach((b: Ball) => {
       const lx = b.pos.x - levelOffset.x;
       const ly = b.pos.y - levelOffset.y;
-      if (level[ly][lx] !== " ") {
+      if (levelGrid[ly][lx] !== " ") {
         isGoal = false;
+        gridScore[ly][lx] = 2;
+      } else {
+        gridScore[ly][lx] = 1;
       }
     });
     if (!isGoal) {
@@ -230,15 +259,24 @@ function generateLevel() {
     pool.get(ball).forEach((b: Ball) => {
       const lx = b.pos.x - levelOffset.x;
       const ly = b.pos.y - levelOffset.y;
-      level[ly][lx] = "G";
+      levelGrid[ly][lx] = "G";
     });
     break;
   }
+  gridScore.forEach(gsl =>
+    gsl.forEach(gs => {
+      level.score += gs;
+    })
+  );
+  return level;
 }
 
-function checkLevel() {
-  resetLevel(false);
-  for (let i = 0; i < levelTime * ballStepDuration; i++) {
+function checkLevel(level: Level, isChangingLevel = false) {
+  resetLevel(level, false);
+  if (isChangingLevel) {
+    changeLevelChars();
+  }
+  for (let i = 0; i < level.time * ballStepDuration; i++) {
     sgaUpdate();
   }
   return !checkGoal();
@@ -257,10 +295,10 @@ function checkGoal() {
 
 let time: number;
 
-function resetLevel(isBallVisible = true) {
+function resetLevel(level: Level, isBallVisible = true) {
   sgaReset();
-  printLevel(level.map(l => l.join("")).join("\n"));
-  ballPlaces.forEach(bp => {
+  printLevel(level.grid.map(l => l.join("")).join("\n"));
+  level.ballPlaces.forEach(bp => {
     spawn(
       ball,
       levelOffset.x + bp.pos.x,
@@ -269,7 +307,7 @@ function resetLevel(isBallVisible = true) {
       isBallVisible
     );
   });
-  time = levelTime * ballStepDuration;
+  time = level.time * ballStepDuration;
 }
 
 function generatePath(
@@ -351,8 +389,12 @@ function printLevelChar(sc, x, y) {
   terminal.print(sc.char, levelOffset.x + x, levelOffset.y + y, options);
 }
 
-function printLevelCount() {
-  terminal.print(`LEVEL ${levelCount}`, 0, 20);
+function printLevelCount(isGenerating = false) {
+  terminal.print(
+    `LEVEL ${levelCount} ${isGenerating ? "GENERATING..." : ""}`,
+    0,
+    20
+  );
 }
 
 function initGameOver() {
