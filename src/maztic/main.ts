@@ -88,6 +88,7 @@ function startLevel() {
     .div(2)
     .floor();
   levels = [];
+  playScale(1, "..(.", 4);
   isGeneratingLevel = true;
 }
 
@@ -98,6 +99,7 @@ function update() {
   }
   view.clear();
   if (isJustPressed) {
+    playScale(2, ".((.", 4);
     changeLevelChars();
   }
   terminal.draw();
@@ -110,11 +112,17 @@ function update() {
   if (time === 0) {
     isSuccess = checkGoal();
     terminal.print(isSuccess ? "SUCCESS" : "FAIL  ", 0, 0);
+    if (isSuccess) {
+      playScale(0, ".)).(.>.).().().", 4);
+    } else {
+      playScale(0, ".<.)).<.(.", 5, scales.minorPentatonic);
+    }
   } else if (time === -40) {
     if (isSuccess) {
       startLevel();
     } else {
       resetLevel(currentLevel);
+      playScale(1, ".).<.", 4);
     }
   }
   ticks++;
@@ -147,6 +155,7 @@ function tryToGenerateLevel() {
     levels = stableSort(levels, (l1, l2) => l2.score - l1.score);
     currentLevel = levels[0];
     resetLevel(currentLevel);
+    playScale(1, ".>.(.", 4);
     isGeneratingLevel = false;
   }
 }
@@ -328,7 +337,7 @@ function generatePath(
       points.push({ pos: new Vector(pos), angle: angle - 1 });
       points.push({ pos: new Vector(pos), angle: angle + 1 });
     } else if (c === "N" || c === "Z" || c === "n" || c === "z") {
-      const b = { angle };
+      const b = { angle, reflect90Wall: () => {} };
       levelChar[c].onHit(b);
       if (wrap(angle - b.angle, 0, 4) === 2) {
         c = " ";
@@ -405,6 +414,8 @@ interface Ball extends Actor {
   removeLevelChar: Function;
   checkHit: Function;
   reflect: Function;
+  reflect90: Function;
+  reflect90Wall: Function;
 }
 
 function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
@@ -441,6 +452,9 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   };
   b.removeLevelChar = () => {
     terminal.print(" ", pos.x, pos.y);
+    if (isVisible) {
+      playScale(2, ").((..", 4);
+    }
   };
   b.checkHit = (func = "onHit") => {
     const sc = b.getLevelChar();
@@ -450,6 +464,19 @@ function ball(b: Ball, x: number, y: number, _angle: number, isVisible = true) {
   };
   b.reflect = () => {
     b.angle = wrap(b.angle + 2, 0, 4);
+    if (isVisible) {
+      playScale(2, ".).", 3.5);
+    }
+  };
+  b.reflect90 = () => {
+    if (isVisible) {
+      playScale(2, ".(.>.", 4);
+    }
+  };
+  b.reflect90Wall = () => {
+    if (isVisible) {
+      playScale(2, ".>.", 3);
+    }
   };
   b.addUpdater(() => {
     ticks++;
@@ -509,6 +536,7 @@ const levelChar = {
     char: "/",
     onHit: b => {
       b.angle = [3, 2, 1, 0][b.angle];
+      b.reflect90();
     },
     changeTo: "\\"
   },
@@ -516,6 +544,7 @@ const levelChar = {
     char: "\\",
     onHit: b => {
       b.angle = [1, 0, 3, 2][b.angle];
+      b.reflect90();
     },
     changeTo: "/"
   },
@@ -545,6 +574,7 @@ const levelChar = {
     isSymbol: true,
     onHit: b => {
       b.angle = [2, 3, 1, 0][b.angle];
+      b.reflect90Wall();
     }
   },
   N: {
@@ -552,6 +582,7 @@ const levelChar = {
     isSymbol: true,
     onHit: b => {
       b.angle = [1, 3, 0, 2][b.angle];
+      b.reflect90Wall();
     }
   },
   z: {
@@ -560,6 +591,7 @@ const levelChar = {
     angle: 2,
     onHit: b => {
       b.angle = [3, 2, 0, 1][b.angle];
+      b.reflect90Wall();
     }
   },
   n: {
@@ -568,6 +600,7 @@ const levelChar = {
     angle: 2,
     onHit: b => {
       b.angle = [2, 0, 3, 1][b.angle];
+      b.reflect90Wall();
     }
   },
   s: {
