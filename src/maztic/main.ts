@@ -62,17 +62,23 @@ let levelTimeTarget: number;
 let levels: Level[];
 let currentLevel: Level;
 let isGeneratingLevel: boolean;
-let levelCount = 0;
+let levelCount: number;
 let isSuccess: boolean;
 let pressingTicks: number;
 
 function initInGame() {
   state = "inGame";
+  loadLevel();
+  startLevel();
+}
+
+function goToNextLevel() {
+  levelCount++;
+  saveLevel();
   startLevel();
 }
 
 function startLevel() {
-  levelCount++;
   view.clear();
   terminal.clear();
   printLevelCount(true);
@@ -129,7 +135,7 @@ function update() {
     }
   } else if (time === -40) {
     if (isSuccess) {
-      startLevel();
+      goToNextLevel();
     } else {
       restartLevel();
     }
@@ -671,6 +677,49 @@ function updateGameOver() {
     initInGame();
   } else if (ticks > 300) {
     initTitle();
+  }
+}
+
+const localStorageKey = "maztic-level";
+
+function saveLevel() {
+  const baseUrl = window.location.href.split("?")[0];
+  let url = `${baseUrl}?l=${levelCount}`;
+  try {
+    window.history.replaceState({}, "", url);
+  } catch (e) {
+    console.log(e);
+  }
+  try {
+    localStorage.setItem(localStorageKey, levelCount.toString());
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+function loadLevel() {
+  const query = window.location.search.substring(1);
+  levelCount = undefined;
+  if (query != null) {
+    let params = query.split("&");
+    let seedStr: string;
+    for (let i = 0; i < params.length; i++) {
+      const param = params[i];
+      const pair = param.split("=");
+      if (pair[0] === "l") {
+        levelCount = Number(pair[1]);
+      }
+    }
+  }
+  if (levelCount == null) {
+    try {
+      levelCount = Number(localStorage.getItem(localStorageKey));
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  if (levelCount == null || levelCount < 1) {
+    levelCount = 1;
   }
 }
 
