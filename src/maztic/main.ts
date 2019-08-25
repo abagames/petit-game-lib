@@ -18,6 +18,7 @@ import { Vector } from "../pgl/vector";
 import { playScale, scales } from "../pgl/sound";
 import { wrap, range, clamp, stableSort } from "../pgl/math";
 import { Random } from "../pgl/random";
+import { isPressed } from "../pgl/pointer";
 
 let ticks = 0;
 type State = "title" | "inGame" | "gameOver";
@@ -63,6 +64,7 @@ let currentLevel: Level;
 let isGeneratingLevel: boolean;
 let levelCount = 0;
 let isSuccess: boolean;
+let pressingTicks: number;
 
 function initInGame() {
   state = "inGame";
@@ -102,6 +104,14 @@ function update() {
     playScale(2, ".((.", 4);
     changeLevelChars();
   }
+  if (isPressed) {
+    pressingTicks++;
+    if (pressingTicks === 30) {
+      restartLevel();
+    }
+  } else {
+    pressingTicks = 0;
+  }
   terminal.draw();
   sgaUpdate();
   updateFunc[state]();
@@ -121,11 +131,15 @@ function update() {
     if (isSuccess) {
       startLevel();
     } else {
-      resetLevel(currentLevel);
-      playScale(1, ".).<.", 4);
+      restartLevel();
     }
   }
   ticks++;
+}
+
+function restartLevel() {
+  resetLevel(currentLevel);
+  playScale(1, ".).<.", 4);
 }
 
 function changeLevelChars() {
@@ -309,6 +323,7 @@ function resetLevel(level: Level, isBallVisible = true) {
     );
   });
   time = level.time * ballStepDuration;
+  pressingTicks = 0;
 }
 
 function generatePath(
