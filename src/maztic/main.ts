@@ -20,13 +20,11 @@ import { wrap, range, clamp, stableSort } from "../pgl/math";
 import { Random } from "../pgl/random";
 import { isPressed } from "../pgl/pointer";
 
-let ticks = 0;
-type State = "title" | "inGame" | "gameOver";
+type State = "title" | "inGame";
 let state: State;
 let updateFunc = {
   title: updateTitle,
-  inGame: updateInGame,
-  gameOver: updateGameOver
+  inGame: updateInGame
 };
 
 pglInit(init, update, {
@@ -35,14 +33,7 @@ pglInit(init, update, {
 
 function init() {
   text.defineSymbols(charPatterns, "Y");
-  //initTitle();
-  initInGame();
-}
-
-function initTitle() {
-  state = "title";
-  ticks = 0;
-  sgaReset();
+  initTitle();
 }
 
 type Level = {
@@ -101,6 +92,10 @@ function startLevel() {
 }
 
 function update() {
+  updateFunc[state]();
+}
+
+function updateInGame() {
   if (isGeneratingLevel) {
     tryToGenerateLevel();
     return;
@@ -120,7 +115,6 @@ function update() {
   }
   terminal.draw();
   sgaUpdate();
-  updateFunc[state]();
   time--;
   if (time > 0) {
     terminal.print(`TIME ${Math.floor(time / 20)} `, 0, 0);
@@ -140,7 +134,6 @@ function update() {
       restartLevel();
     }
   }
-  ticks++;
 }
 
 function restartLevel() {
@@ -419,12 +412,6 @@ function printLevelCount(isGenerating = false) {
   );
 }
 
-function initGameOver() {
-  state = "gameOver";
-  clearJustPressed();
-  ticks = 0;
-}
-
 interface Ball extends Actor {
   pos: Vector;
   angle: number;
@@ -650,33 +637,26 @@ const levelChar = {
   }
 };
 
-function updateTitle() {
+function initTitle() {
+  state = "title";
+  sgaReset();
+  view.clear();
+  terminal.clear();
   text.print("MAZTIC", 25, 25, { scale: 2 });
-  if (ticks > 20) {
-    text.print("", 5, 60, {
-      charAndColorPattern: `
+  text.print("", 5, 60, {
+    charAndColorPattern: `
 [Z][Click][Touch]
-ycyycccccyycccccy
   Change Direction
 [Hold down]
-ygggggggggy
   Retry
     `
-    });
-  }
-  if (isJustPressed) {
-    initInGame();
-  }
+  });
+  terminal.draw();
 }
 
-function updateInGame() {}
-
-function updateGameOver() {
-  text.print("GAME OVER", 30, 25, { scale: 2 });
+function updateTitle() {
   if (isJustPressed) {
     initInGame();
-  } else if (ticks > 300) {
-    initTitle();
   }
 }
 
