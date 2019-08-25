@@ -640,6 +640,9 @@ const levelChar = {
 function initTitle() {
   state = "title";
   sgaReset();
+}
+
+function updateTitle() {
   view.clear();
   terminal.clear();
   text.print("MAZTIC", 25, 25, { scale: 2 });
@@ -652,9 +655,6 @@ function initTitle() {
     `
   });
   terminal.draw();
-}
-
-function updateTitle() {
   if (isJustPressed) {
     initInGame();
   }
