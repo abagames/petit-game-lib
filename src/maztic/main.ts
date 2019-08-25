@@ -1,9 +1,4 @@
-import {
-  init as pglInit,
-  clearJustPressed,
-  isJustPressed,
-  random
-} from "../pgl/main";
+import { init as pglInit, isJustPressed, random } from "../pgl/main";
 import * as view from "../pgl/view";
 import * as text from "../pgl/text";
 import * as terminal from "../pgl/terminal";
@@ -20,11 +15,12 @@ import { wrap, range, clamp, stableSort } from "../pgl/math";
 import { Random } from "../pgl/random";
 import { isPressed } from "../pgl/pointer";
 
-type State = "title" | "inGame";
+type State = "title" | "inGame" | "solved";
 let state: State;
 let updateFunc = {
   title: updateTitle,
-  inGame: updateInGame
+  inGame: updateInGame,
+  solved: updateSolved
 };
 
 pglInit(init, update, {
@@ -34,6 +30,10 @@ pglInit(init, update, {
 function init() {
   text.defineSymbols(charPatterns, "Y");
   initTitle();
+}
+
+function update() {
+  updateFunc[state]();
 }
 
 type Level = {
@@ -48,6 +48,7 @@ const ballStepDuration = 20;
 const angleOffsets = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 const levelSize = new Vector();
 const levelOffset = new Vector();
+const targetLevelCount = 50;
 let ballCount: number;
 let levelTimeTarget: number;
 let levels: Level[];
@@ -91,10 +92,6 @@ function startLevel() {
   isGeneratingLevel = true;
 }
 
-function update() {
-  updateFunc[state]();
-}
-
 function updateInGame() {
   if (isGeneratingLevel) {
     tryToGenerateLevel();
@@ -129,7 +126,11 @@ function updateInGame() {
     }
   } else if (time === -40) {
     if (isSuccess) {
-      goToNextLevel();
+      if (levelCount === targetLevelCount) {
+        initSolved();
+      } else {
+        goToNextLevel();
+      }
     } else {
       restartLevel();
     }
@@ -657,6 +658,23 @@ function updateTitle() {
   terminal.draw();
   if (isJustPressed) {
     initInGame();
+  }
+}
+
+function initSolved() {
+  state = "solved";
+  text.print(`${targetLevelCount} LEVELS`, 36, 48, {
+    backgroundColorPattern: "lllllllllllllll"
+  });
+  text.print(`ARE SOLVED!`, 30, 54, {
+    backgroundColorPattern: "lllllllllllllll"
+  });
+}
+
+function updateSolved() {
+  if (isJustPressed) {
+    state = "inGame";
+    goToNextLevel();
   }
 }
 
