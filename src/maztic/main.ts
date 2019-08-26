@@ -99,7 +99,7 @@ function updateInGame() {
   }
   view.clear();
   if (isJustPressed) {
-    playScale(2, ".((.", 4);
+    playScale(1, ".(.>.", 4);
     changeLevelChars();
   }
   if (isPressed) {
@@ -169,7 +169,7 @@ function tryToGenerateLevel() {
     levels = stableSort(levels, (l1, l2) => l2.score - l1.score);
     currentLevel = levels[0];
     resetLevel(currentLevel);
-    playScale(1, ".>.(.", 4);
+    playScale(1, ".>.).", 4);
     isGeneratingLevel = false;
   }
 }
