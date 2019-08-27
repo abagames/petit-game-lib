@@ -41,6 +41,7 @@ type Level = {
   ballPlaces: { pos: Vector; angle: number }[];
   time: number;
   score: number;
+  operations: boolean[];
 };
 
 const ballMoveDuration = 10;
@@ -57,6 +58,8 @@ let isGeneratingLevel: boolean;
 let levelCount: number;
 let isSuccess: boolean;
 let pressingTicks: number;
+let isAnswering = false;
+let operationIndex: number;
 
 function initInGame() {
   state = "inGame";
@@ -66,6 +69,7 @@ function initInGame() {
 
 function goToNextLevel() {
   levelCount++;
+  isAnswering = false;
   saveLevel();
   startLevel();
 }
@@ -98,9 +102,17 @@ function updateInGame() {
     return;
   }
   view.clear();
-  if (isJustPressed) {
+  if (
+    (isAnswering &&
+      currentLevel.operations[operationIndex] &&
+      time % ballStepDuration == ballMoveDuration) ||
+    (!isAnswering && isJustPressed)
+  ) {
     playScale(1, ".(.>.", 4);
     changeLevelChars();
+  }
+  if (isAnswering && time % ballStepDuration == ballMoveDuration) {
+    operationIndex++;
   }
   if (isPressed) {
     pressingTicks++;
@@ -171,6 +183,7 @@ function tryToGenerateLevel() {
     resetLevel(currentLevel);
     playScale(1, ".>.).", 4);
     isGeneratingLevel = false;
+    operationIndex = 0;
   }
 }
 
@@ -179,7 +192,8 @@ function generateLevel() {
     grid: range(levelSize.y).map(() => range(levelSize.x).map(() => "w")),
     ballPlaces: [],
     time: 0,
-    score: 0
+    score: 0,
+    operations: []
   };
   const levelGrid = level.grid;
   const ballPlaces = level.ballPlaces;
@@ -256,6 +270,9 @@ function generateLevel() {
     level.time++;
     if (random.get() < 0.25) {
       changeLevelChars();
+      level.operations.push(true);
+    } else {
+      level.operations.push(false);
     }
     let isGoal = true;
     pool.get(ball).forEach((b: Ball) => {
@@ -663,10 +680,10 @@ function updateTitle() {
 
 function initSolved() {
   state = "solved";
-  text.print(`${targetLevelCount} LEVELS`, 36, 48, {
+  text.print(`  ${targetLevelCount} LEVELS  `, 24, 48, {
     backgroundColorPattern: "lllllllllllllll"
   });
-  text.print(`ARE SOLVED!`, 30, 54, {
+  text.print(` ARE SOLVED! `, 24, 54, {
     backgroundColorPattern: "lllllllllllllll"
   });
 }
@@ -706,17 +723,19 @@ function loadLevel() {
       const pair = param.split("=");
       if (pair[0] === "l") {
         levelCount = Number(pair[1]);
+      } else if (pair[0] === "a") {
+        isAnswering = true;
       }
     }
   }
-  if (levelCount == null) {
+  if (levelCount == null || levelCount < 1 || isNaN(levelCount)) {
     try {
       levelCount = Number(localStorage.getItem(localStorageKey));
     } catch (e) {
       console.log(e);
     }
   }
-  if (levelCount == null || levelCount < 1) {
+  if (levelCount == null || levelCount < 1 || isNaN(levelCount)) {
     levelCount = 1;
   }
 }
