@@ -8,6 +8,10 @@ Game development library for petit games.
 
 [![SINE CIRCUS screenshot](docs/screenshots/sinecircus.gif)](https://abagames.github.io/petit-game-lib/sinecircus/)
 
+[MAZTIC](https://abagames.github.io/petit-game-lib/maztic/)
+
+[![MAZTIC screenshot](docs/screenshots/maztic.gif)](https://abagames.github.io/petit-game-lib/maztic/)
+
 [SKI ZONE](https://abagames.github.io/petit-game-lib/skizone/)
 
 [![SKI ZONE screenshot](docs/screenshots/skizone.gif)](https://abagames.github.io/petit-game-lib/skizone/)
